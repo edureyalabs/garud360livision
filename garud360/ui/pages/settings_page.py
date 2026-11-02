@@ -30,7 +30,7 @@ def _verify_model(values: dict) -> str:
     backend = YoloBackend(cfg)
     backend.load()
     backend.close()
-    return f"Model '{cfg.weights()}' loaded successfully."
+    return f"Detection model ({cfg.label()}) loaded successfully."
 
 
 class SettingsPage(QWidget):
@@ -47,7 +47,7 @@ class SettingsPage(QWidget):
         head.addWidget(h)
         head.addStretch(1)
         self.verify = QPushButton("Download / verify model")
-        self.verify.setToolTip("Loads the selected YOLO model once. The first time it is downloaded (internet needed).")
+        self.verify.setToolTip("Loads the selected detection model once. The first time it is downloaded (internet needed).")
         self.verify.clicked.connect(self._verify)
         siren = QPushButton("Test siren (3 s)")
         siren.clicked.connect(lambda: self.ctx.runtime.siren.test(3.0))

@@ -1,5 +1,5 @@
 # garud360/core/detection/engine.py
-"""YOLO inference backend and the shared, fair inference scheduler.
+"""Detection model backend and the shared, fair inference scheduler.
 
 One model serves every camera of every running space. Cameras are served oldest-first
 (round-robin by waiting time) so no camera can be starved - a starved camera would
@@ -39,6 +39,12 @@ class ModelConfig:
         return cls(str(s["model_task"]), str(s["model_size"]), str(s["custom_model_path"]).strip(),
                    str(s["inference_device"]), int(s["image_size"]), bool(s["half_precision"]))
 
+    def label(self) -> str:
+        """Friendly name for the UI (the weights file name stays internal)."""
+        if self.custom_path:
+            return "custom model"
+        return f"{self.task} model (size {self.size})"
+
     def weights(self) -> str:
         if self.custom_path:
             return self.custom_path
@@ -52,7 +58,7 @@ class InferenceBackend(Protocol):
 
 
 class YoloBackend:
-    """Ultralytics YOLO26 wrapper. Imports are lazy so the UI starts instantly."""
+    """Ultralytics model wrapper. Imports are lazy so the UI starts instantly."""
 
     def __init__(self, cfg: ModelConfig) -> None:
         self.cfg = cfg
@@ -248,18 +254,18 @@ class InferenceService:
                 pass
             self._backend = None
         self._cfg = wanted
-        self._set_status("loading", f"Loading {wanted.weights()} ...", wanted.weights())
+        self._set_status("loading", "", wanted.label())
         try:
             backend = self._factory(wanted)
             backend.load()
         except Exception as exc:  # noqa: BLE001 - surface any load failure to the UI
             log.exception("Model load failed")
-            self._set_status("error", f"{type(exc).__name__}: {exc}", wanted.weights())
+            self._set_status("error", f"{type(exc).__name__}: {exc}", wanted.label())
             self._retry_at = time.monotonic() + 15.0
             return False
         self._backend = backend
         self._consecutive_fail = 0
-        self._set_status("ready", "", wanted.weights())
+        self._set_status("ready", "", wanted.label())
         return True
 
     def _collect(self, max_batch: int) -> list[tuple[InferenceClient, np.ndarray]]:

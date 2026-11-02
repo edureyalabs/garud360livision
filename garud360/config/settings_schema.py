@@ -46,13 +46,13 @@ S = SettingDef
 SETTINGS: tuple[SettingDef, ...] = (
     # ------------------------------------------------------------------ MODEL
     S("model_task", "Model type", G_MODEL, "choice", "segment",
-      "'segment' draws a pixel-accurate outline around each person (yolo26?-seg). 'detect' draws only boxes "
-      "(yolo26?). The person / no-person decision is made the same way either way.",
+      "'segment' draws a pixel-accurate outline around each person. 'detect' draws only boxes. "
+      "The person / no-person decision is made the same way either way.",
       increase="segment: draws outlines (clearer view, best for review), somewhat slower and heavier than detect.",
       decrease="detect: boxes only - faster and lighter, a good choice when many cameras share one machine.",
       choices=("segment", "detect")),
     S("model_size", "Model size", G_MODEL, "choice", "n",
-      "YOLO26 size: n (nano) < s < m < l < x (extra large). Bigger = more accurate but slower and heavier.",
+      "Model size: n (nano) < s < m < l < x (extra large). Bigger = more accurate but slower and heavier.",
       increase="Moving n -> x: fewer missed/false people, but each frame takes several times longer, so you can "
                "serve fewer cameras.",
       decrease="Moving x -> n: much faster and lighter (best for laptops/CPU), but small or distant people are "
@@ -62,7 +62,7 @@ SETTINGS: tuple[SettingDef, ...] = (
       "Full path to your own weights or an exported model (.pt, .onnx, .engine, or an OpenVINO "
       "'..._openvino_model' folder). When set it OVERRIDES model type and size.",
       increase="Set: your own / exported model is used (make sure 'Image size' matches its export size).",
-      decrease="Empty: the standard YOLO26 weights are used (downloaded automatically on first run)."),
+      decrease="Empty: the standard built-in model is used (downloaded automatically on first run)."),
     S("inference_device", "Inference device", G_MODEL, "choice", "auto",
       "Where the model runs. 'auto' lets Ultralytics choose (GPU if available). Use cuda:0 for an NVIDIA GPU, "
       "cpu to force CPU, intel:gpu / intel:cpu for OpenVINO-exported models.",

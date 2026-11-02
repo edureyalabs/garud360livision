@@ -1,7 +1,7 @@
 <!-- README.md -->
 # Garud 360 Li-Vision
 
-Computer-vision (YOLO26) crane-zone safety monitoring for Windows, with a 3D LiDAR tab reserved for a later release.
+Computer-vision crane-zone safety monitoring for Windows, with a 3D LiDAR tab reserved for a later release.
 
 A **space** is one monitored area: up to **10 live camera sources** and one **crane output channel**. If a person
 (confidence >= 0.40 by default) is inside the danger zone - or a camera fails - the app blocks crane movement through the
@@ -14,7 +14,7 @@ PLC (the "holder knob" / run-permissive is released) and un-blocks it when the z
 | Login | Local username/password (bcrypt). Admin and Operator roles. No cloud sign-in. |
 | Spaces | Up to 50 spaces, each with up to 10 cameras. Start/stop each space independently. |
 | Cameras | DroidCam (Android/iPhone: IP + port + **Connect** test), laptop/USB cameras, RTSP IP cameras, HTTP/MJPEG, video files (for testing). Automatic reconnect with back-off. |
-| Detection | YOLO26 (segment or detect, sizes n/s/m/l/x, custom/exported models), person-only, trigger/release frames, per-camera polygon **monitored zone**. One shared, fair scheduler for all cameras. |
+| Detection | AI person detection (segment or detect, sizes n/s/m/l/x, custom/exported models), person-only, trigger/release frames, per-camera polygon **monitored zone**. One shared, fair scheduler for all cameras. |
 | Fail-safe | A lost, frozen or stalled camera (or a stalled detector) is treated exactly like a detected person and blocks the crane. Crane output is blocked first and only released once all cameras are proven healthy. |
 | Crane output | Siemens S7, Rockwell/Allen-Bradley (EtherNet/IP), Mitsubishi MELSEC (MC), Omron (FINS), Schneider (Modbus TCP), plus generic OPC UA - and a **built-in simulated crane**. Heartbeat, write read-back, auto-reconnect. |
 | Client requirements | AI only while a load is suspended (PLC "load present" input), latch-until-**manual reset** (app button or crane remote input), **pause** AI to attach/detach a load with automatic resume, siren, violation snapshots, daily violation summary. |
@@ -50,7 +50,7 @@ scripts\setup_windows.bat
 4. Start the app with the **Garud 360 Li-Vision** desktop shortcut (created by the setup), or `scripts\run_garud360.bat`.
    If something fails, `scripts\run_garud360_console.bat` shows the error messages.
 
-The first start downloads the YOLO26 model (~25 MB for the default `yolo26n-seg`), so the PC needs internet once.
+The first start downloads the detection model (about 7 MB for the default), so the PC needs internet once.
 You can also do it from **Settings > Download / verify model**.
 
 **Update later:** `scripts\update_windows.bat` (runs `git pull` and refreshes the packages). Your data is kept.
@@ -112,7 +112,7 @@ pip install -r requirements-dev.txt
 python -m pytest                                        # tests use fake cameras / fake PLC servers
 python scripts/generate_settings_guide.py               # after editing garud360/config/settings_schema.py
 python -m garud360 --data-dir ./.devdata                # run with a throw-away data folder
-GARUD360_E2E_IMAGE=photo_with_people.jpg python -m pytest tests/test_e2e_real_model.py -s   # real YOLO26 end-to-end
+GARUD360_E2E_IMAGE=photo_with_people.jpg python -m pytest tests/test_e2e_real_model.py -s   # real-model end-to-end
 ```
 
 Layout: `garud360/core` (cameras, detection, interlock, PLC drivers, runtime), `garud360/ui` (Qt screens),

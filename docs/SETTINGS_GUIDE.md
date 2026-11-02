@@ -7,13 +7,13 @@ Every value below can be changed in **Settings** (global defaults). Settings mar
 
 ### Model type
 - **Default:** `segment`. Options: segment, detect.
-- **What it does:** 'segment' draws a pixel-accurate outline around each person (yolo26?-seg). 'detect' draws only boxes (yolo26?). The person / no-person decision is made the same way either way.
+- **What it does:** 'segment' draws a pixel-accurate outline around each person. 'detect' draws only boxes. The person / no-person decision is made the same way either way.
 - **If you raise / turn it on:** segment: draws outlines (clearer view, best for review), somewhat slower and heavier than detect.
 - **If you lower / turn it off:** detect: boxes only - faster and lighter, a good choice when many cameras share one machine.
 
 ### Model size
 - **Default:** `n`. Options: n, s, m, l, x.
-- **What it does:** YOLO26 size: n (nano) < s < m < l < x (extra large). Bigger = more accurate but slower and heavier.
+- **What it does:** Model size: n (nano) < s < m < l < x (extra large). Bigger = more accurate but slower and heavier.
 - **If you raise / turn it on:** Moving n -> x: fewer missed/false people, but each frame takes several times longer, so you can serve fewer cameras.
 - **If you lower / turn it off:** Moving x -> n: much faster and lighter (best for laptops/CPU), but small or distant people are missed more often.
 
@@ -21,7 +21,7 @@ Every value below can be changed in **Settings** (global defaults). Settings mar
 - **Default:** `(empty)`.
 - **What it does:** Full path to your own weights or an exported model (.pt, .onnx, .engine, or an OpenVINO '..._openvino_model' folder). When set it OVERRIDES model type and size.
 - **If you raise / turn it on:** Set: your own / exported model is used (make sure 'Image size' matches its export size).
-- **If you lower / turn it off:** Empty: the standard YOLO26 weights are used (downloaded automatically on first run).
+- **If you lower / turn it off:** Empty: the standard built-in model is used (downloaded automatically on first run).
 
 ### Inference device
 - **Default:** `auto`. Options: auto, cpu, cuda:0, cuda:1, intel:gpu, intel:cpu.
