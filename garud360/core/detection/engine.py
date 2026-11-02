@@ -91,10 +91,15 @@ class YoloBackend:
         try:
             self.model = YOLO(target, **kwargs)
         except Exception:
-            if local is None or not local.exists():
+            if local is None:
                 raise
-            log.warning("Model file %s could not be loaded - deleting it and downloading again", local)
-            local.unlink(missing_ok=True)
+            # A broken / half-downloaded file makes Ultralytics try to resume it and fail (HTTP 416): start clean.
+            log.warning("Model %s could not be loaded - removing partial file and downloading again", local)
+            for stale in (local, local.with_name(local.name + ".part")):
+                try:
+                    stale.unlink(missing_ok=True)
+                except OSError:
+                    pass
             self.model = YOLO(target, **kwargs)
         names = getattr(self.model, "names", None) or {}
         self._person_id = next((int(i) for i, n in dict(names).items() if str(n).lower() == "person"), 0)
