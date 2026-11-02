@@ -1,0 +1,13 @@
+# requirements.txt
+# Runtime dependencies. On Windows `pip install torch` installs the CPU build; for an NVIDIA GPU see README.md ("GPU").
+PySide6>=6.6,<7
+numpy>=1.24,<3
+opencv-python>=4.8,<6
+ultralytics>=8.4.0
+bcrypt>=4.0,<6
+# PLC drivers
+python-snap7>=3.0,<4          # Siemens S7 (pure Python in 3.x - no DLL needed)
+pycomm3>=1.2.14,<2            # Rockwell / Allen-Bradley EtherNet/IP
+pymcprotocol>=0.3.0,<1        # Mitsubishi MELSEC MC protocol
+asyncua>=1.1.5,<3             # OPC UA
+# (Modbus TCP and Omron FINS are implemented in-house: no dependency)
