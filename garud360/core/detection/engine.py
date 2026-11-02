@@ -60,6 +60,7 @@ class YoloBackend:
         self._person_id = 0
         self._device: str | None = None
         self._half = False
+        self._precision_key = "half"
 
     def load(self) -> None:
         try:
@@ -71,19 +72,37 @@ class YoloBackend:
             settings.update({"weights_dir": str(paths.models_dir()), "sync": False})
         except Exception:  # noqa: BLE001 - settings are optional
             log.debug("Could not update ultralytics settings", exc_info=True)
-        name = self.cfg.weights()
-        log.info("Loading model %s", name)
+        try:
+            from ultralytics.cfg import DEFAULT_CFG_DICT
+            self._precision_key = "quantize" if "quantize" in DEFAULT_CFG_DICT else "half"
+        except Exception:  # noqa: BLE001
+            self._precision_key = "half"
         kwargs: dict[str, Any] = {}
-        if not self.cfg.custom_path:
+        local: Any = None
+        if self.cfg.custom_path:
+            target = self.cfg.custom_path
+        else:
+            # An absolute path inside our data folder: Ultralytics downloads missing standard weights exactly there
+            # (a bare file name would be downloaded into the current directory, which may be read-only).
+            local = paths.models_dir() / self.cfg.weights()
+            target = str(local)
             kwargs["task"] = "segment" if self.cfg.task == "segment" else "detect"
-        self.model = YOLO(name, **kwargs)
+        log.info("Loading model %s", target)
+        try:
+            self.model = YOLO(target, **kwargs)
+        except Exception:
+            if local is None or not local.exists():
+                raise
+            log.warning("Model file %s could not be loaded - deleting it and downloading again", local)
+            local.unlink(missing_ok=True)
+            self.model = YOLO(target, **kwargs)
         names = getattr(self.model, "names", None) or {}
         self._person_id = next((int(i) for i, n in dict(names).items() if str(n).lower() == "person"), 0)
         self._device = None if self.cfg.device == "auto" else self.cfg.device
         self._half = bool(self.cfg.half) and self._cuda_selected()
         # warm-up so the first real frame is not slow
         self._run([np.zeros((self.cfg.imgsz, self.cfg.imgsz, 3), np.uint8)], 0.5)
-        log.info("Model ready (device=%s, imgsz=%d, half=%s)", self._device or "auto", self.cfg.imgsz, self._half)
+        log.info("Model ready (device=%s, imgsz=%d, fp16=%s)", self._device or "auto", self.cfg.imgsz, self._half)
 
     def _cuda_selected(self) -> bool:
         if self._device and self._device.startswith("cuda"):
@@ -97,8 +116,11 @@ class YoloBackend:
         return False
 
     def _run(self, frames: list[np.ndarray], conf: float) -> list[Any]:
+        extra: dict[str, Any] = {}
+        if self._half:                       # newer Ultralytics renamed half -> quantize=16
+            extra[self._precision_key] = 16 if self._precision_key == "quantize" else True
         return self.model.predict(frames, imgsz=self.cfg.imgsz, conf=conf, classes=[self._person_id],
-                                  device=self._device, half=self._half, verbose=False)
+                                  device=self._device, verbose=False, **extra)
 
     def predict(self, frames: list[np.ndarray], conf: float) -> list[list[Detection]]:
         results = self._run(frames, conf)

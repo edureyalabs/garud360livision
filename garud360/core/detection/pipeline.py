@@ -177,12 +177,13 @@ class CameraPipeline:
         with self._lock:
             shown, shape, count = list(self._shown), self._shape, self._count
             active = self.debouncer.active
+        k = max(1.0, img.shape[1] / 700.0)                # keep text legible on full-size snapshots
         sx = img.shape[1] / max(shape[1], 1)
         sy = img.shape[0] / max(shape[0], 1)
         if self.roi.active and bool(self._s["roi_enabled"]):
             pts = np.array([[x * (img.shape[1] - 1), y * (img.shape[0] - 1)] for x, y in self.roi.polygon or []],
                            np.int32)
-            cv2.polylines(img, [pts], True, YELLOW, 2, cv2.LINE_AA)
+            cv2.polylines(img, [pts], True, YELLOW, max(2, int(2 * k)), cv2.LINE_AA)
         if bool(self._s["draw_masks"]):
             overlay = img.copy()
             for s in shown:
@@ -193,27 +194,31 @@ class CameraPipeline:
         for s in shown:
             x1, y1, x2, y2 = (int(v) for v in (s.det.box[0] * sx, s.det.box[1] * sy, s.det.box[2] * sx, s.det.box[3] * sy))
             color = RED if s.counted else GREY
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(img, f"person {s.det.conf:.2f}", (x1, max(y1 - 6, 12)), FONT, 0.5, color, 1, cv2.LINE_AA)
-        _label(img, f"{self.name}  |  Persons: {count}", (8, 22), WHITE, 0.6)
+            cv2.rectangle(img, (x1, y1), (x2, y2), color, max(2, int(2 * k)))
+            cv2.putText(img, f"person {s.det.conf:.2f}", (x1, max(y1 - 6, int(14 * k))), FONT, 0.5 * k, color,
+                        max(1, int(k)), cv2.LINE_AA)
+        _label(img, f"{self.name}  |  Persons: {count}", (8, int(22 * k)), WHITE, 0.6 * k)
         if not hd.ok:
-            _banner(img, f"CAMERA FAULT: {hd.detail}", RED)
+            _banner(img, f"CAMERA FAULT: {hd.detail}", RED, k)
         elif status_text:
-            _banner(img, status_text, YELLOW)
+            _banner(img, status_text, YELLOW, k)
         elif active:
-            _banner(img, "PERSON DETECTED", RED)
+            _banner(img, "PERSON DETECTED", RED, k)
         return img
 
 
 def _label(img: np.ndarray, text: str, org: tuple[int, int], color: tuple[int, int, int], scale: float) -> None:
-    cv2.putText(img, text, org, FONT, scale, (0, 0, 0), 3, cv2.LINE_AA)
-    cv2.putText(img, text, org, FONT, scale, color, 1, cv2.LINE_AA)
+    thick = max(1, int(round(scale / 0.6)))
+    cv2.putText(img, text, org, FONT, scale, (0, 0, 0), thick + 2, cv2.LINE_AA)
+    cv2.putText(img, text, org, FONT, scale, color, thick, cv2.LINE_AA)
 
 
-def _banner(img: np.ndarray, text: str, color: tuple[int, int, int]) -> None:
+def _banner(img: np.ndarray, text: str, color: tuple[int, int, int], k: float = 1.0) -> None:
     h, w = img.shape[:2]
-    cv2.rectangle(img, (0, h - 30), (w, h), color, -1)
-    cv2.putText(img, text[: max(10, w // 9)], (8, h - 9), FONT, 0.55, (0, 0, 0), 1, cv2.LINE_AA)
+    bh = int(30 * k)
+    cv2.rectangle(img, (0, h - bh), (w, h), color, -1)
+    cv2.putText(img, text[: max(10, int(w / (9 * k)))], (8, h - int(9 * k)), FONT, 0.55 * k, (0, 0, 0),
+                max(1, int(k)), cv2.LINE_AA)
 
 
 def _placeholder(name: str, title: str, detail: str, width: int) -> np.ndarray:

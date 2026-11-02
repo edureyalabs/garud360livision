@@ -39,12 +39,11 @@ PLC (the "holder knob" / run-permissive is released) and un-blocks it when the z
 
 1. Install **Python 3.11 (64-bit)** from <https://www.python.org/downloads/windows/> and tick *Add python.exe to PATH*.
 2. Install **Git** from <https://git-scm.com/download/win> (or use *Code > Download ZIP* on GitHub and unzip).
-3. Open *Command Prompt* and run:
+3. Open *Command Prompt* and run (if the repository is private, Git for Windows opens a browser window to sign in to GitHub):
 
 ```bat
-git clone https://github.com/edureyalabs/garud360livision.git
+git clone -b claude/vigilant-volta-bybkpf https://github.com/edureyalabs/garud360livision.git
 cd garud360livision
-git checkout claude/vigilant-volta-bybkpf
 scripts\setup_windows.bat
 ```
 
@@ -113,6 +112,7 @@ pip install -r requirements-dev.txt
 python -m pytest                                        # tests use fake cameras / fake PLC servers
 python scripts/generate_settings_guide.py               # after editing garud360/config/settings_schema.py
 python -m garud360 --data-dir ./.devdata                # run with a throw-away data folder
+GARUD360_E2E_IMAGE=photo_with_people.jpg python -m pytest tests/test_e2e_real_model.py -s   # real YOLO26 end-to-end
 ```
 
 Layout: `garud360/core` (cameras, detection, interlock, PLC drivers, runtime), `garud360/ui` (Qt screens),

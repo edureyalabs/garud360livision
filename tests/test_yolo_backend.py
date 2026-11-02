@@ -66,7 +66,7 @@ def test_load_predict_conversion(monkeypatch, tmp_path):
     monkeypatch.setenv("GARUD360_DATA_DIR", str(tmp_path))
     be = YoloBackend(ModelConfig("segment", "n", "", "auto", 640, False))
     be.load()
-    assert rec["init"][0] == "yolo26n-seg.pt" and rec["init"][1] == {"task": "segment"}
+    assert rec["init"][0] == str(tmp_path / "models" / "yolo26n-seg.pt") and rec["init"][1] == {"task": "segment"}
     assert rec["settings"]["sync"] is False and rec["settings"]["weights_dir"].startswith(str(tmp_path))
     warm = rec["calls"][0]
     assert warm["classes"] == [0] and warm["imgsz"] == 640 and warm["verbose"] is False and warm["device"] is None
@@ -79,6 +79,27 @@ def test_load_predict_conversion(monkeypatch, tmp_path):
     assert be.predict(frames, 0.995)[0][0].polygon is None          # no masks (detect model) -> boxes only
 
 
+def test_corrupt_download_is_deleted_and_retried(monkeypatch, tmp_path):
+    rec = {"n": 0}
+    install_fake(monkeypatch, rec)
+    monkeypatch.setenv("GARUD360_DATA_DIR", str(tmp_path))
+    import ultralytics
+    good = ultralytics.YOLO
+
+    def flaky(name, **kw):
+        rec["n"] += 1
+        if rec["n"] == 1:
+            raise RuntimeError("corrupt checkpoint")
+        return good(name, **kw)
+
+    monkeypatch.setattr(ultralytics, "YOLO", flaky)
+    from garud360 import paths
+    f = paths.models_dir() / "yolo26n-seg.pt"
+    f.write_bytes(b"garbage")
+    YoloBackend(ModelConfig("segment", "n")).load()
+    assert rec["n"] == 2 and not f.exists()
+
+
 def test_custom_model_has_no_forced_task_and_device_passthrough(monkeypatch, tmp_path):
     rec = {}
     install_fake(monkeypatch, rec)
@@ -87,4 +108,4 @@ def test_custom_model_has_no_forced_task_and_device_passthrough(monkeypatch, tmp
     be.load()
     assert rec["init"] == ("D:/models/crane_openvino_model", {})
     assert rec["calls"][-1]["device"] == "intel:gpu" and rec["calls"][-1]["imgsz"] == 960
-    assert rec["calls"][-1]["half"] is False                         # half only with CUDA
+    assert "half" not in rec["calls"][-1] and "quantize" not in rec["calls"][-1]   # FP16 only with CUDA
