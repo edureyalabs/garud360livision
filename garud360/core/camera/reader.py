@@ -71,7 +71,8 @@ def open_capture(spec: OpenSpec, timeout_s: float, stop: threading.Event) -> Opt
         return cap
     abandoned.set()
     if cap is not None:
-        cap.release()
+        # release() can block for a long time on a half-open network stream: never do it on the caller's thread
+        threading.Thread(target=cap.release, name="cam-release", daemon=True).start()
     return None
 
 
@@ -192,6 +193,8 @@ class CameraReader:
                 if cap is not None:
                     break
                 errors.append(f"{spec.label} not reachable")
+                log.warning("[%s] could not open %s (timeout %.0fs) - will retry", self.name, spec.label,
+                            float(s["connect_timeout_s"]))
             if self._stop.is_set():
                 if cap is not None:
                     self._release(cap)
