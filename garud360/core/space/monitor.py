@@ -229,7 +229,9 @@ class SpaceMonitor:
             cams: list[CameraStatus] = []
             for p in self.pipelines.values():
                 h = p.health()
-                cams.append(CameraStatus(p.camera_id, p.name, h.ok, h.detail, p.person_count,
+                detail = h.detail if h.ok or not h.detail.startswith("Detection stalled") \
+                    else h.detail + self._engine_note()
+                cams.append(CameraStatus(p.camera_id, p.name, h.ok, detail, p.person_count,
                                          p.person_active, p.ai_active, p.reader.health().fps))
             ps = self._plc.status() if self._plc else None
             plc_down = bool(self._running and ps is not None and not ps.connected
@@ -256,6 +258,15 @@ class SpaceMonitor:
         return d.snapshot() if isinstance(d, SimulatedPlcDriver) else None
 
     # ================================================================ internals ==
+    def _engine_note(self) -> str:
+        """Why detection is not running, when the engine itself is the problem."""
+        st = self.engine.status()
+        if st.state == "error":
+            return f" | Detection engine ERROR: {st.message}"
+        if st.state == "loading":
+            return f" | Detection engine is loading the model ({st.model}) ..."
+        return ""
+
     def _by(self, user: str) -> str:
         return f" by {user}" if user else ""
 
@@ -344,7 +355,10 @@ class SpaceMonitor:
             ok = healths[cid].ok
             prev_ok = self._prev_ok.get(cid, True)
             if not ok and prev_ok and not in_grace:
-                self._log(EV_CAM_FAULT, f"Camera fault: {healths[cid].detail}", SEV_CRIT, cid, p.name)
+                d = healths[cid].detail
+                if d.startswith("Detection stalled"):
+                    d += self._engine_note()
+                self._log(EV_CAM_FAULT, f"Camera fault: {d}", SEV_CRIT, cid, p.name)
                 self._prev_ok[cid] = False
             elif ok and not prev_ok:
                 self._log(EV_CAM_OK, "Camera recovered.", SEV_INFO, cid, p.name)
