@@ -113,7 +113,6 @@ class SettingsPage(QWidget):
             error_box(self, "Settings not saved", str(exc))
             return
         self.ctx.events.log_audit(self.ctx.username, "settings_saved")
-        self.ctx.runtime.engine.request_reload()
         self._msg("Settings saved.")
         QTimer.singleShot(4000, lambda: self.status.setText(""))
 

@@ -129,8 +129,10 @@ class SpaceMonitor:
         cams = [c for c in self.space.cameras if c.enabled]
         if not cams:
             raise SpaceStartError("This space has no enabled cameras.")
-        errs = driver_class(self.plc_cfg.type).validate_config(self.plc_cfg) if self.plc_cfg.type else \
-            ["No output channel selected."]
+        try:
+            errs = driver_class(self.plc_cfg.type).validate_config(self.plc_cfg)
+        except PlcError as exc:
+            errs = [str(exc)]
         if errs:
             raise SpaceStartError(f"Output channel: {errs[0]}")
         try:

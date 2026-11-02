@@ -19,14 +19,20 @@ log = logging.getLogger("garud360")
 def setup_logging() -> None:
     root = logging.getLogger()
     root.setLevel(logging.INFO)
+    for h in list(root.handlers):                    # idempotent: drop handlers from an earlier call
+        if getattr(h, "_garud", False):
+            root.removeHandler(h)
+            h.close()
     fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s")
     fh = logging.handlers.RotatingFileHandler(paths.logs_dir() / "garud360.log", maxBytes=5_000_000, backupCount=5,
                                               encoding="utf-8")
     fh.setFormatter(fmt)
+    fh._garud = True  # type: ignore[attr-defined]
     root.addHandler(fh)
     if sys.stderr is not None:
         sh = logging.StreamHandler(sys.stderr)
         sh.setFormatter(fmt)
+        sh._garud = True  # type: ignore[attr-defined]
         root.addHandler(sh)
     try:
         faulthandler.enable(open(paths.logs_dir() / "crash.log", "a"))
@@ -94,7 +100,7 @@ def _run_gui() -> int:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"Garud.{APP_ID}")   # taskbar icon
         except Exception:  # noqa: BLE001
             pass
-    app = QApplication(sys.argv)
+    app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(app_icon())

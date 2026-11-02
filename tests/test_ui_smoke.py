@@ -81,7 +81,16 @@ def test_all_pages_build_and_refresh(qapp, ctx, monkeypatch, tmp_path):
         win._poll_alarms()
         qapp.processEvents()
         time.sleep(0.05)
-    assert win.alarm.isVisible() or not win.isVisible() or True
+    import garud360.ui.pages.dashboard as dash
+    monkeypatch.setattr(dash, "confirm", lambda *a, **k: True)
+    view = win.dashboard.view
+    view.pause_min.setValue(2)
+    view._pause()
+    eventually(lambda: ctx.runtime.snapshots()[sp.id].status == "PAUSED", message="paused from the UI")
+    view.refresh()
+    assert view.pause_btn.text() == "Resume now" and not view.reset_btn.isEnabled()
+    view._pause()                                           # second press resumes
+    eventually(lambda: ctx.runtime.snapshots()[sp.id].status != "PAUSED", message="resumed from the UI")
     pix = win.grab()
     out = os.environ.get("GARUD_SHOT_DIR")
     if out:
